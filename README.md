@@ -1,1 +1,0 @@
-# shutterhalf-payment-receipt
