@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shutter Half · Receipt Generator</title>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&family=Montserrat:wght@400;500;600;700;800;900&display=block" rel="stylesheet">
+
+<!-- PDF generation stack -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.4.0/dist/dom-to-image-more.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════
+   GLOBAL
+═══════════════════════════════════════════ */
+:root {
+  --gold:       #b8860b;
+  --gold-lt:    #d4a820;
+  --dark:       #1c1c1c;
+  --bg:         #f0ede5;
+  --panel:      #ffffff;
+  --border:     #e0dbd0;
+  --muted:      #999;
+  --receipt-bg: #cac6b9;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--dark);
+}
+
+/* ═══════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════ */
+.topbar {
+  background: var(--bg);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* border-bottom: 2px solid var(--gold); */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-brand { display: flex; align-items: baseline; gap: 10px; }
+.topbar-brand .name {
+  font-size: 19px; font-weight: 800; color: var(--dark); letter-spacing: -0.5px;
+}
+.topbar-brand .name span { color: var(--gold); }
+.topbar-brand .tag {
+  font-size: 9px; font-weight: 700; letter-spacing: 3.5px;
+  text-transform: uppercase; color: var(--dark);
+}
+.topbar-right {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--dark);
+}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
+  height: calc(100vh - 52px);
+  height: calc(100dvh - 52px);
+  min-height: 500px;
+}
+
+/* ═══════════════════════════════════════════
+   FORM PANEL
+═══════════════════════════════════════════ */
+.form-panel {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 28px 28px 24px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.form-panel h2 {
+  font-size: 14px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 22px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fsection { margin-bottom: 22px; }
+
+.fsection-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.fsection-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--gold-lt), transparent);
+}
+
+.fgroup { display: flex; flex-direction: column; gap: 10px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+
+label {
+  font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted);
+}
+
+input {
+  padding: 11px 14px;
+  font-size: 15px;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  color: var(--dark);
+  background: var(--bg);
+  transition: border-color .2s, box-shadow .2s;
+  outline: none;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184,134,11,.1);
+  background: #fff;
+}
+input[readonly] {
+  background: #f5f3ee; color: #aaa; cursor: default;
+}
+
+.input-wrap { position: relative; }
+.input-wrap input { padding-right: 28px; }
+.input-wrap .sfx {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; font-weight: 700; color: var(--gold);
+  pointer-events: none;
+}
+
+.auto-tag {
+  display: inline-block;
+  background: rgba(184,134,11,.12); color: var(--gold);
+  font-size: 7px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; padding: 1px 6px; border-radius: 10px;
+  margin-left: 5px; vertical-align: middle;
+}
+
+/* Buttons */
+.btn-group {
+  display: flex; gap: 10px;
+  margin-top: 22px; padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.btn {
+  flex: 1; padding: 12px 14px; border: none; border-radius: 6px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: pointer;
+  transition: all .2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn-download {
+  background: linear-gradient(135deg, var(--gold), var(--gold-lt));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(184,134,11,.3);
+}
+.btn-download:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(184,134,11,.4);
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; transform: none !important; }
+
+/* ═══════════════════════════════════════════
+   PREVIEW PANEL
+═══════════════════════════════════════════ */
+.preview-panel {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #e4e0d4;
+  background-image: radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 18px 18px;
+  padding: 28px 32px;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+.preview-toprow {
+  width: 100%; max-width: 820px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.preview-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: #888;
+}
+.preview-badge {
+  background: var(--dark); color: var(--gold-lt);
+  font-size: 8px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 4px 10px; border-radius: 20px;
+}
+
+/* Receipt outer wrapper — clips the scaled receipt */
+.receipt-outer {
+  width: 100%;
+  max-width: min(794px, 100%);
+  position: relative;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--receipt-bg);
+}
+
+/* Scale wrapper trick: shrinks receipt to fit panel without iframe */
+.receipt-scale-wrap {
+  width: 794px;
+  transform-origin: top left;
+  /* JS sets transform: scale(X) and parent height */
+}
+
+/* ═══════════════════════════════════════════
+   ██████  RECEIPT  ██████
+═══════════════════════════════════════════ */
+#receipt {
+  width: 794px;
+  min-height: 1123px;
+  background-color: #cac6b9;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Dot texture — real div instead of ::before (html2canvas compat) */
+.r-dots {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.045) 1px, transparent 1px);
+  background-size: 12px 12px;
+  pointer-events: none; z-index: 0;
+}
+
+/* Watermark */
+.r-watermark {
+  position: absolute;
+  bottom: 120px; right: 30px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 88px; font-weight: 900;
+  color: rgba(0,0,0,0.04);
+  line-height: 1; text-align: right;
+  pointer-events: none; user-select: none; z-index: 0;
+}
+
+/* Header */
+.r-header {
+  padding: 28px 52px 20px;
+  text-align: center;
+  position: relative; z-index: 1;
+}
+.r-header-title {
+  font-size: 14px; font-weight: 800;
+  letter-spacing: 7px; color: #1c1c1c;
+  text-transform: uppercase;
+}
+.r-header-line {
+  width: 100%; height: 1px;
+  background: rgba(0,0,0,0.14);
+  margin-top: 16px;
+}
+
+/* Brand Band */
+.r-band {
+  background: #b5b1a3;
+  padding: 26px 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 1;
+}
+/* Band dot texture */
+.r-band-dots {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 10px 10px; pointer-events: none;
+}
+
+.r-logo-wrap {
+  display: flex; align-items: flex-start; gap: 6px;
+}
+/* writing-mode removed — html2canvas doesn't support it.
+   We use a fixed-size wrapper + rotate() instead.          */
+.r-logo-studio-wrap {
+  width: 11px;
+  height: 56px;
+  flex-shrink: 0;
+  position: relative;
+  margin-top: 2px;
+}
+.r-logo-studio {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center center;
+  white-space: nowrap;
+  font-size: 8px; font-weight: 600; letter-spacing: 1.5px;
+  color: #555;
+  line-height: 1;
+}
+.r-logo-text { display: flex; flex-direction: column; line-height: 1.05; }
+.r-logo-shutter {
+  font-size: 27px; font-weight: 800;
+  color: #1c1c1c; letter-spacing: -0.5px;
+}
+.r-logo-half {
+  font-size: 27px; font-weight: 800;
+  color: #1c1c1c; letter-spacing: -0.5px;
+}
+.r-logo-dot { color: #b8860b; }
+
+.r-arrow-circle {
+  width: 60px; height: 60px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.22);
+  display: flex; align-items: center; justify-content: center;
+}
+.r-arrow-circle svg { width: 22px; height: 22px; }
+
+.r-client-name {
+  font-size: 19px; font-weight: 800;
+  letter-spacing: 2px; color: #1c1c1c;
+  text-transform: uppercase; text-align: right;
+  word-break: break-word;
+}
+
+/* Content */
+.r-content {
+  padding: 40px 52px 28px;
+  flex: 1; position: relative; z-index: 1;
+}
+
+.r-sec-label {
+  font-size: 12px; font-weight: 800;
+  letter-spacing: 1.5px; color: #1c1c1c;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.r-gold-line {
+  width: 128px; height: 2px;
+  background: linear-gradient(90deg, #b8860b, #d4a820, #b8860b);
+  margin-bottom: 13px;
+}
+.r-dates-val {
+  font-size: 14px; font-weight: 700;
+  color: #1c1c1c; letter-spacing: 0.5px;
+  margin-bottom: 40px;
+}
+
+/* Financial rows */
+.r-fin-block { display: flex; flex-direction: column; }
+
+.r-fin-row {
+  display: flex; align-items: flex-end;
+  justify-content: space-between;
+  padding: 16px 0 5px;
+}
+.r-fin-label {
+  font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+  color: #b8860b; text-transform: uppercase;
+  flex: 1; padding-right: 20px; line-height: 1.5;
+}
+.r-fin-value {
+  font-size: 22px; font-weight: 800;
+  color: #1c1c1c; letter-spacing: -0.5px;
+  white-space: nowrap;
+  text-align: right;
+}
+.r-fin-div {
+  width: 100%; height: 1.5px;
+  background: linear-gradient(90deg, #b8860b, #d4a820, transparent);
+}
+.r-fin-div.dark {
+  background: linear-gradient(90deg, #1c1c1c, #555, transparent);
+  height: 2px;
+}
+
+.r-fin-row.big .r-fin-label { color: #1c1c1c; }
+.r-fin-row.big .r-fin-value { font-size: 24px; }
+
+/* Footer */
+.r-footer {
+  background: #3a3834;
+  padding: 26px 52px;
+  display: flex; align-items: center; gap: 28px;
+  position: relative; z-index: 1; margin-top: auto;
+}
+.r-footer-contact { display: flex; flex-direction: column; gap: 5px; min-width: 158px; }
+.r-footer-name {
+  font-size: 14px; font-weight: 600;
+  color: #c49a2a; font-style: italic;
+  font-family: 'Playfair Display', serif;
+}
+.r-footer-phone { font-size: 11px; color: #c8c4b8; font-weight: 400; letter-spacing: 0.5px; }
+.r-footer-vdiv { width: 1px; height: 46px; background: rgba(200,196,184,.28); flex-shrink: 0; }
+.r-footer-addr { font-size: 11px; color: #c8c4b8; line-height: 1.75; font-weight: 400; flex: 1; word-break: break-word; }
+
+/* ═══════════════════════════════════════════
+   LOADING OVERLAY
+═══════════════════════════════════════════ */
+#loading {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); z-index: 200;
+  align-items: center; justify-content: center;
+}
+#loading.on { display: flex; }
+.loading-card {
+  background: #fff; border-radius: 10px;
+  padding: 30px 44px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #eee; border-top-color: var(--gold);
+  border-radius: 50%; animation: spin .75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-card p {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE — 5 breakpoints
+═══════════════════════════════════════════ */
+
+/* ── 900px: Stack layout ── */
+@media (max-width: 900px) {
+  .topbar { padding: 12px 20px; gap: 6px; }
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 0;
+  }
+  .form-panel {
+    height: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 24px 22px;
+  }
+  .preview-panel {
+    padding: 20px 16px 28px;
+    overflow: visible;
+  }
+}
+
+/* ── 768px: Tablet ── */
+@media (max-width: 768px) {
+  .topbar { padding: 10px 16px; gap: 4px; }
+  .topbar-brand .name { font-size: 18px; }
+  .topbar-brand .tag { font-size: 10px; letter-spacing: 2px; }
+
+  .form-panel { padding: 24px 24px; }
+  .form-panel h2 { font-size: 22px; letter-spacing: 2.5px; margin-bottom: 24px; padding-bottom: 12px; }
+  .preview-panel { padding: 16px 12px 24px; }
+  .preview-toprow { flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .fsection { margin-bottom: 24px; }
+  .fsection-title { font-size: 20px; letter-spacing: 2px; margin-bottom: 16px; }
+  .fgroup { gap: 18px; }
+  .field { gap: 10px; }
+  label { font-size: 18px; letter-spacing: 1.2px; }
+  input { font-size: 24px; padding: 18px 20px; min-height: 60px; border-radius: 6px; }
+  .input-wrap input { padding-right: 40px; }
+  .input-wrap .sfx { font-size: 20px; right: 16px; }
+  .auto-tag { font-size: 13px; padding: 4px 10px; }
+
+  .btn-group { margin-top: 26px; padding-top: 22px; gap: 12px; }
+  .btn { min-height: 60px; font-size: 18px; padding: 18px; border-radius: 7px; }
+
+  .receipt-outer {
+    border-radius: 2px;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.18), 0 2px 10px rgba(0,0,0,0.08);
+  }
+}
+
+/* ── 600px: Phone ── */
+@media (max-width: 600px) {
+  .topbar {
+    padding: 10px 14px; gap: 3px;
+    flex-wrap: wrap;
+  }
+  .topbar-brand { gap: 6px; }
+  .topbar-brand .name { font-size: 17px; }
+  .topbar-brand .tag { font-size: 9px; letter-spacing: 1.5px; }
+  .topbar-right {
+    width: 100%;
+    font-size: 9px; letter-spacing: 1.5px;
+    padding-left: 0;
+    color: var(--dark);
+    border-top: 1px solid var(--border);
+    padding-top: 5px;
+    margin-top: 2px;
+  }
+
+  .form-panel { padding: 26px 22px; max-height: 55vh; }
+  .form-panel h2 { font-size: 22px; letter-spacing: 2px; margin-bottom: 22px; padding-bottom: 12px; }
+  .btn-group {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .btn {
+    width: 100%;
+    min-height: 64px;
+    font-size: 20px;
+    padding: 20px;
+  }
+  input {
+    min-height: 64px;
+    font-size: 24px;
+    padding: 18px 20px;
+  }
+  .preview-panel { padding: 14px 10px 20px; }
+  .preview-toprow { margin-bottom: 10px; }
+  .preview-label { font-size: 10px; }
+  .fsection { margin-bottom: 26px; }
+  .fsection-title { font-size: 18px; letter-spacing: 1.5px; margin-bottom: 16px; }
+  .fgroup { gap: 18px; }
+  .field { gap: 12px; }
+  label { font-size: 17px; letter-spacing: 1px; }
+  .input-wrap input { padding-right: 44px; }
+  .input-wrap .sfx { font-size: 18px; right: 16px; }
+
+  .loading-card {
+    width: calc(100vw - 32px);
+    padding: 24px 20px;
+  }
+}
+
+/* ── 400px: Small phone ── */
+@media (max-width: 400px) {
+  .topbar { padding: 8px 12px; gap: 2px; }
+  .topbar-brand { gap: 5px; }
+  .topbar-brand .name { font-size: 15px; }
+  .topbar-brand .tag { font-size: 8px; letter-spacing: 1px; }
+  .topbar-right { font-size: 8px; letter-spacing: 1px; padding-top: 4px; }
+
+  .form-panel { padding: 24px 20px; }
+  .form-panel h2 { font-size: 21px; margin-bottom: 20px; padding-bottom: 10px; }
+  .fsection { margin-bottom: 22px; }
+  .fsection-title { font-size: 17px; letter-spacing: 1.2px; margin-bottom: 14px; }
+  .fgroup { gap: 16px; }
+  label { font-size: 16px; letter-spacing: 0.8px; }
+  input {
+    font-size: 23px;
+    padding: 18px 18px;
+    min-height: 58px;
+  }
+  .input-wrap input { padding-right: 40px; }
+  .input-wrap .sfx { font-size: 18px; right: 14px; }
+  .auto-tag { font-size: 12px; padding: 3px 8px; }
+
+  .btn { font-size: 18px; padding: 18px; min-height: 58px; }
+  .preview-panel { padding: 12px 8px 16px; }
+  .preview-label { font-size: 9px; }
+
+  .loading-card {
+    padding: 20px 16px;
+    border-radius: 8px;
+  }
+  .loading-card p { font-size: 9px; }
+}
+
+/* ── 360px: Very small phone ── */
+@media (max-width: 360px) {
+  body { overflow-x: hidden; }
+  .topbar { padding: 8px 10px; }
+  .topbar-brand { gap: 4px; }
+  .topbar-brand .name { font-size: 14px; }
+  .topbar-brand .tag { display: none; }
+  .topbar-right { font-size: 8px; letter-spacing: 0.8px; padding-top: 3px; border-top: 0; }
+
+  .form-panel { padding: 22px 18px; }
+  .form-panel h2 { font-size: 20px; margin-bottom: 18px; padding-bottom: 10px; }
+  .fsection { margin-bottom: 20px; }
+  .fsection-title { font-size: 16px; margin-bottom: 12px; }
+  .fgroup { gap: 14px; }
+  label { font-size: 15px; }
+  input { font-size: 22px; min-height: 56px; padding: 17px 16px; }
+  .input-wrap input { padding-right: 38px; }
+  .input-wrap .sfx { font-size: 17px; right: 12px; }
+
+  .btn-group { margin-top: 20px; padding-top: 16px; gap: 10px; }
+  .btn { font-size: 17px; padding: 17px; min-height: 56px; }
+
+  .preview-panel { padding: 10px 6px 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── TOP BAR ─── -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="name">Shutter half<span>.</span></span>
+    <span class="tag">Receipt Generator</span>
+  </div>
+  <span class="topbar-right">Studio · Rajkot</span>
+</div>
+
+<!-- ─── LAYOUT ─── -->
+<div class="layout">
+
+  <!-- ══════════════════════════
+       FORM PANEL
+  ══════════════════════════ -->
+  <div class="form-panel">
+    <h2>Fill Receipt Details</h2>
+
+    <!-- CLIENT -->
+    <div class="fsection">
+      <div class="fsection-title">Client Info</div>
+      <div class="fgroup">
+        <div class="field">
+          <label>Client Full Name</label>
+          <input id="f-clientName" type="text" value="SIDDHARTH NAIR" placeholder="e.g. RAHUL SHARMA" oninput="liveUpdate()">
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENT -->
+    <div class="fsection">
+      <div class="fsection-title">Event</div>
+      <div class="fgroup">
+        <div class="field">
+          <label>Event Date(s)</label>
+          <input id="f-eventDates" type="text" value="21,22,23 FEB 2026" placeholder="e.g. 15 MAR 2026" oninput="liveUpdate()">
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT DETAILS -->
+    <div class="fsection">
+      <div class="fsection-title">Payment Details</div>
+      <div class="fgroup">
+
+        <div class="field">
+          <label>Total Package Cost (₹)</label>
+          <div class="input-wrap">
+            <input id="f-totalPkg" type="text" value="" placeholder="e.g. 1,00,000" oninput="formatAmtInput(this); autoCalc()">
+            <span class="sfx">/-</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Advance Received (₹)</label>
+          <div class="input-wrap">
+            <input id="f-advance" type="text" value="" placeholder="e.g. 50,000" oninput="formatAmtInput(this); autoCalc()">
+            <span class="sfx">/-</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Remaining Balance (₹) <span class="auto-tag">Auto</span></label>
+          <div class="input-wrap">
+            <input id="f-balance" type="text" value="" readonly>
+            <span class="sfx">/-</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Remaining Received (₹)</label>
+          <div class="input-wrap">
+            <input id="f-remRcvd" type="text" value="" placeholder="e.g. 50,000" oninput="formatAmtInput(this); autoCalcTotal()">
+            <span class="sfx">/-</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Total Payment Received (₹) <span class="auto-tag">Auto</span></label>
+          <div class="input-wrap">
+            <input id="f-totalRcvd" type="text" value="" readonly>
+            <span class="sfx">/-</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- STUDIO CONTACT -->
+    <div class="fsection">
+      <div class="fsection-title">Studio Contact</div>
+      <div class="fgroup">
+        <div class="field">
+          <label>Contact Person</label>
+          <input id="f-contactName" type="text" value="Jayneel Pandya" oninput="liveUpdate()">
+        </div>
+        <div class="field">
+          <label>Phone 1</label>
+          <input id="f-phone1" type="text" value="+91 94090 14098" oninput="liveUpdate()">
+        </div>
+        <div class="field">
+          <label>Phone 2</label>
+          <input id="f-phone2" type="text" value="+91 88665 54423" oninput="liveUpdate()">
+        </div>
+        <div class="field">
+          <label>Studio Address</label>
+          <input id="f-address" type="text"
+            value="403, Keval gold, Behind nyara petrol pump, Near bapasitaram chowk, Raiya road, Rajkot-360007"
+            oninput="liveUpdate()">
+        </div>
+      </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="btn-group">
+      <button class="btn btn-download" id="btn-dl" onclick="downloadPDF()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PREVIEW PANEL
+  ══════════════════════════ -->
+  <div class="preview-panel" id="previewPanel">
+    <div class="preview-toprow">
+      <span class="preview-label">Live Preview</span>
+    </div>
+
+    <!-- Receipt outer clips the scaled receipt -->
+    <div class="receipt-outer" id="receiptOuter">
+      <div class="receipt-scale-wrap" id="scaleWrap">
+
+        <!-- ════════════════════════
+             THE RECEIPT  (794 × 1123 px)
+        ════════════════════════ -->
+        <div id="receipt">
+
+          <!-- Texture dots (real div, not ::before — html2canvas compat) -->
+          <div class="r-dots"></div>
+
+          <!-- Watermark -->
+          <div class="r-watermark">Shutter<br>half.</div>
+
+          <!-- HEADER -->
+          <div class="r-header">
+            <div class="r-header-title">Payment Receipt</div>
+            <div class="r-header-line"></div>
+          </div>
+
+          <!-- BRAND BAND -->
+          <div class="r-band">
+            <div class="r-band-dots"></div>
+
+            <div class="r-logo-wrap">
+              <div class="r-logo-studio-wrap">
+                <span class="r-logo-studio">studio</span>
+              </div>
+              <div class="r-logo-text">
+                <span class="r-logo-shutter">Shutter</span>
+                <span class="r-logo-half">half<span class="r-logo-dot">.</span></span>
+              </div>
+            </div>
+
+            <div class="r-arrow-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+
+            <div class="r-client-name" id="r-clientName">SIDDHARTH NAIR</div>
+          </div>
+
+          <!-- CONTENT -->
+          <div class="r-content">
+
+            <div class="r-sec-label">Event Dates</div>
+            <div class="r-gold-line"></div>
+            <div class="r-dates-val" id="r-eventDates">21,22,23 FEB 2026</div>
+
+            <div class="r-fin-block">
+
+              <div class="r-fin-row">
+                <div class="r-fin-label">Total Package Cost:-</div>
+                <div class="r-fin-value" id="r-totalPkg">3,15,000/-</div>
+              </div>
+              <div class="r-fin-div"></div>
+
+              <div class="r-fin-row">
+                <div class="r-fin-label">Advance Received:-</div>
+                <div class="r-fin-value" id="r-advance">1,00,000/-</div>
+              </div>
+              <div class="r-fin-div"></div>
+
+              <div class="r-fin-row">
+                <div class="r-fin-label">Remaining Balance:-</div>
+                <div class="r-fin-value" id="r-balance">2,15,000/-</div>
+              </div>
+              <div class="r-fin-div"></div>
+
+              <div class="r-fin-row">
+                <div class="r-fin-label">Remaining Received:-</div>
+                <div class="r-fin-value" id="r-remRcvd">2,15,000/-</div>
+              </div>
+              <div class="r-fin-div dark"></div>
+
+              <div class="r-fin-row big">
+                <div class="r-fin-label">Total Payment<br>Received:-</div>
+                <div class="r-fin-value" id="r-totalRcvd">3,15,000/-</div>
+              </div>
+              <div class="r-fin-div dark"></div>
+
+            </div>
+          </div><!-- /r-content -->
+
+          <!-- FOOTER -->
+          <div class="r-footer">
+            <div class="r-footer-contact">
+              <div class="r-footer-name" id="r-contactName">Jayneel Pandya</div>
+              <div class="r-footer-phone" id="r-phone1">+91 94090 14098</div>
+              <div class="r-footer-phone" id="r-phone2">+91 88665 54423</div>
+            </div>
+            <div class="r-footer-vdiv"></div>
+            <div class="r-footer-addr" id="r-address">
+              403, Keval gold, Behind nyara petrol pump,<br>
+              Near bapasitaram chowk, Raiya road, Rajkot-360007
+            </div>
+          </div>
+
+        </div><!-- /#receipt -->
+      </div><!-- /.receipt-scale-wrap -->
+    </div><!-- /.receipt-outer -->
+  </div><!-- /.preview-panel -->
+
+</div><!-- /.layout -->
+
+<!-- LOADING OVERLAY -->
+<div id="loading">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <p id="loading-msg">Generating PDF…</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════ -->
+<script>
+// ─── Helpers ───────────────────────────────
+function parseAmt(s) { return parseInt((s||'0').replace(/[^0-9]/g, '')) || 0; }
+
+function fmtAmt(n) {
+  const s = String(n);
+  if (s.length <= 3) return s;
+  let last3 = s.slice(-3);
+  let rest   = s.slice(0, -3);
+  let out    = '';
+  while (rest.length > 2) { out = ',' + rest.slice(-2) + out; rest = rest.slice(0, -2); }
+  return rest + out + ',' + last3;
+}
+
+function formatAmtInput(el) {
+  const pos = el.selectionStart;
+  const raw = el.value.replace(/[^0-9]/g, '');
+  const formatted = raw ? fmtAmt(parseInt(raw, 10)) : '';
+  el.value = formatted;
+  const diff = el.value.length - raw.length;
+  el.setSelectionRange(pos + diff, pos + diff);
+}
+
+async function waitForReceiptFonts() {
+  if (!document.fonts) {
+    await new Promise(r => setTimeout(r, 250));
+    return;
+  }
+
+  const fontLoads = [
+    '400 12px "Montserrat"',
+    '600 14px "Montserrat"',
+    '700 22px "Montserrat"',
+    '800 27px "Montserrat"',
+    '900 88px "Montserrat"',
+    'italic 600 14px "Playfair Display"',
+  ];
+
+  await Promise.allSettled(fontLoads.map(font => document.fonts.load(font)));
+  await document.fonts.ready;
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+}
+
+// ─── Auto-calculations ─────────────────────
+function autoCalc() {
+  const pkg = parseAmt(document.getElementById('f-totalPkg').value);
+  const adv = parseAmt(document.getElementById('f-advance').value);
+  const bal = Math.max(0, pkg - adv);
+  document.getElementById('f-balance').value = fmtAmt(bal);
+  autoCalcTotal();
+  liveUpdate();
+}
+
+function autoCalcTotal() {
+  const adv = parseAmt(document.getElementById('f-advance').value);
+  const rem = parseAmt(document.getElementById('f-remRcvd').value);
+  document.getElementById('f-totalRcvd').value = fmtAmt(adv + rem);
+  liveUpdate();
+}
+
+// ─── Live update receipt DOM ─────────────────
+function liveUpdate() {
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+
+  set('r-clientName',  document.getElementById('f-clientName').value  || 'CLIENT NAME');
+  set('r-eventDates',  document.getElementById('f-eventDates').value   || '—');
+  set('r-totalPkg',    (document.getElementById('f-totalPkg').value    || '0') + '/-');
+  set('r-advance',     (document.getElementById('f-advance').value     || '0') + '/-');
+  set('r-balance',     (document.getElementById('f-balance').value     || '0') + '/-');
+  set('r-remRcvd',     (document.getElementById('f-remRcvd').value     || '0') + '/-');
+  set('r-totalRcvd',   (document.getElementById('f-totalRcvd').value   || '0') + '/-');
+  set('r-contactName', document.getElementById('f-contactName').value  || '—');
+  set('r-phone1',      document.getElementById('f-phone1').value       || '');
+  set('r-phone2',      document.getElementById('f-phone2').value       || '');
+
+  // Address (split on comma for line breaks)
+  const addrEl = document.getElementById('r-address');
+  if (addrEl) addrEl.textContent = document.getElementById('f-address').value || '—';
+}
+
+// ─── Scale preview to fit panel ────────────────
+function scalePreview() {
+  const outer   = document.getElementById('receiptOuter');
+  const wrap    = document.getElementById('scaleWrap');
+  const receipt = document.getElementById('receipt');
+  if (!outer || !wrap || !receipt) return;
+
+  const availW = Math.max(outer.offsetWidth, 1);
+  const scale  = Math.min(1, availW / 794);
+  wrap.style.transform       = `scale(${scale})`;
+  wrap.style.transformOrigin = 'top left';
+  outer.style.height         = (1123 * scale) + 'px';
+}
+
+// ─── SNAPSHOT-TO-PDF ────────────────────────────
+// Strategy: clone the receipt into a hidden off-screen container
+// at FULL 794×1123px, capture it with dom-to-image-more at 3× pixel
+// density (print quality), then embed into jsPDF A4. The live preview
+// is NEVER touched — zero flicker, zero re-render mismatch.
+async function downloadPDF() {
+  const btn    = document.getElementById('btn-dl');
+  const loader = document.getElementById('loading');
+  const msg    = document.getElementById('loading-msg');
+  let stage;
+
+  btn.disabled = true;
+  loader.classList.add('on');
+  try {
+
+  msg.textContent = 'Loading fonts...';
+  await waitForReceiptFonts();
+
+  // ── 1. Build hidden staging container ─────────────────────────
+  msg.textContent = 'Preparing snapshot…';
+
+  stage = document.createElement('div');
+  stage.style.cssText = [
+    'position:fixed',
+    'left:-9999px',
+    'top:0',
+    'width:794px',
+    'height:1123px',
+    'overflow:hidden',
+    'z-index:-999',
+    'pointer-events:none',
+    'background:#cac6b9',
+    'font-family:"Montserrat",sans-serif',
+  ].join(';');
+  document.body.appendChild(stage);
+
+  // ── 2. Clone the exact receipt as rendered in preview ──────────
+  const receipt = document.getElementById('receipt');
+  const clone   = receipt.cloneNode(true);
+
+  // Strip any scale transform — we want native 794px render
+  clone.style.transform       = 'none';
+  clone.style.transformOrigin = 'top left';
+  clone.style.width           = '794px';
+  clone.style.height          = '1123px';
+  clone.style.minHeight       = '1123px';
+  clone.style.position        = 'relative';
+  clone.style.fontFamily      = '"Montserrat", sans-serif';
+  const footerName = clone.querySelector('.r-footer-name');
+  if (footerName) footerName.style.fontFamily = '"Playfair Display", serif';
+  stage.appendChild(clone);
+
+  // Give browser 2 frames to lay out the clone
+  await waitForReceiptFonts();
+  await new Promise(r => setTimeout(r, 120));
+
+  // ── 3. Capture with dom-to-image-more (best CSS support) ───────
+  msg.textContent = 'Taking snapshot…';
+
+  const PIXEL_RATIO = 3; // 3× = ~300 DPI equivalent for A4
+
+  let imgData;
+  try {
+    // dom-to-image-more handles gradients, transforms, shadows perfectly
+    const canvas = await html2canvas(clone, {
+      scale          : PIXEL_RATIO,
+      useCORS        : true,
+      allowTaint     : false,
+      backgroundColor: '#cac6b9',
+      logging        : false,
+      width          : 794,
+      height         : 1123,
+      windowWidth    : 794,
+      windowHeight   : 1123,
+    });
+    imgData = canvas.toDataURL('image/png');
+  } catch (canvasErr) {
+    console.warn('html2canvas failed, retrying once:', canvasErr);
+    // ── Fallback: html2canvas ──────────────────────────────────
+    const canvas = await html2canvas(clone, {
+      scale          : PIXEL_RATIO,
+      useCORS        : true,
+      allowTaint     : false,
+      backgroundColor: '#cac6b9',
+      logging        : false,
+      width          : 794,
+      height         : 1123,
+      windowWidth    : 794,
+      windowHeight   : 1123,
+    });
+    imgData = canvas.toDataURL('image/png');
+  }
+
+  // ── 4. Cleanup staging node ────────────────────────────────────
+  document.body.removeChild(stage);
+
+  // ── 5. Build A4 PDF ────────────────────────────────────────────
+  msg.textContent = 'Building PDF…';
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit        : 'mm',
+    format      : 'a4',
+    compress    : true,
+  });
+
+  // PNG embed — lossless, no JPEG artefacts
+  pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, '', 'FAST');
+
+  const name = (document.getElementById('f-clientName').value || 'receipt')
+               .trim().replace(/\s+/g, '_').toUpperCase();
+  pdf.save(`${name}_payment_receipt.pdf`);
+
+  btn.disabled = false;
+  loader.classList.remove('on');
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    alert('PDF generation failed. Please check your internet connection for fonts and try again.');
+  } finally {
+    if (stage && stage.parentNode) stage.parentNode.removeChild(stage);
+    btn.disabled = false;
+    loader.classList.remove('on');
+  }
+}
+
+// ─── Init ──────────────────────────────────────
+window.addEventListener('load', async () => {
+  liveUpdate();
+  await waitForReceiptFonts();
+  scalePreview();
+});
+
+window.addEventListener('resize', () => scalePreview());
+</script>
+</body>
+</html>
