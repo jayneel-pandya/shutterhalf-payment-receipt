@@ -127,7 +127,7 @@ label {
   text-transform: uppercase; color: var(--muted);
 }
 
-input {
+input, textarea {
   padding: 11px 14px;
   font-size: 15px;
   border: 1.5px solid var(--border);
@@ -142,13 +142,18 @@ input {
   -webkit-appearance: none;
   appearance: none;
 }
-input:focus {
+input:focus, textarea:focus {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(184,134,11,.1);
   background: #fff;
 }
 input[readonly] {
   background: #f5f3ee; color: #aaa; cursor: default;
+}
+textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
 }
 
 .input-wrap { position: relative; }
@@ -267,12 +272,21 @@ input[readonly] {
 .r-watermark {
   position: absolute;
   bottom: 120px; right: 30px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 88px; font-weight: 900;
-  color: rgba(0,0,0,0.04);
+  display: flex; flex-direction: column;
   line-height: 1; text-align: right;
   pointer-events: none; user-select: none; z-index: 0;
 }
+.r-watermark-shutter {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 88px; font-weight: 900;
+  /* color: rgba(0,0,0,0.04); */
+}
+.r-watermark-half {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 88px; font-weight: 900;
+  /* color: rgba(0,0,0,0.04); */
+}
+.r-watermark-dot { color: var(--gold); }
 
 /* Header */
 .r-header {
@@ -413,11 +427,7 @@ input[readonly] {
   position: relative; z-index: 1; margin-top: auto;
 }
 .r-footer-contact { display: flex; flex-direction: column; gap: 5px; min-width: 158px; }
-.r-footer-name {
-  font-size: 14px; font-weight: 600;
-  color: #c49a2a; font-style: italic;
-  font-family: 'Playfair Display', serif;
-}
+.r-footer-name { font-size: 16px; color: #b8860b; font-weight: 600; letter-spacing: 0.5px; }
 .r-footer-phone { font-size: 11px; color: #c8c4b8; font-weight: 400; letter-spacing: 0.5px; }
 .r-footer-vdiv { width: 1px; height: 46px; background: rgba(200,196,184,.28); flex-shrink: 0; }
 .r-footer-addr { font-size: 11px; color: #c8c4b8; line-height: 1.75; font-weight: 400; flex: 1; word-break: break-word; }
@@ -463,8 +473,7 @@ input[readonly] {
   }
   .form-panel {
     height: auto;
-    max-height: 60vh;
-    overflow-y: auto;
+    overflow: visible;
     border-right: 0;
     border-bottom: 1px solid var(--border);
     padding: 24px 22px;
@@ -490,7 +499,7 @@ input[readonly] {
   .fgroup { gap: 18px; }
   .field { gap: 10px; }
   label { font-size: 18px; letter-spacing: 1.2px; }
-  input { font-size: 24px; padding: 18px 20px; min-height: 60px; border-radius: 6px; }
+  input, textarea { font-size: 24px; padding: 18px 20px; min-height: 60px; border-radius: 6px; }
   .input-wrap input { padding-right: 40px; }
   .input-wrap .sfx { font-size: 20px; right: 16px; }
   .auto-tag { font-size: 13px; padding: 4px 10px; }
@@ -523,7 +532,7 @@ input[readonly] {
     margin-top: 2px;
   }
 
-  .form-panel { padding: 26px 22px; max-height: 55vh; }
+  .form-panel { padding: 26px 22px; }
   .form-panel h2 { font-size: 22px; letter-spacing: 2px; margin-bottom: 22px; padding-bottom: 12px; }
   .btn-group {
     flex-direction: column;
@@ -535,7 +544,7 @@ input[readonly] {
     font-size: 20px;
     padding: 20px;
   }
-  input {
+  input, textarea {
     min-height: 64px;
     font-size: 24px;
     padding: 18px 20px;
@@ -571,7 +580,7 @@ input[readonly] {
   .fsection-title { font-size: 17px; letter-spacing: 1.2px; margin-bottom: 14px; }
   .fgroup { gap: 16px; }
   label { font-size: 16px; letter-spacing: 0.8px; }
-  input {
+  input, textarea {
     font-size: 23px;
     padding: 18px 18px;
     min-height: 58px;
@@ -606,7 +615,7 @@ input[readonly] {
   .fsection-title { font-size: 16px; margin-bottom: 12px; }
   .fgroup { gap: 14px; }
   label { font-size: 15px; }
-  input { font-size: 22px; min-height: 56px; padding: 17px 16px; }
+  input, textarea { font-size: 22px; min-height: 56px; padding: 17px 16px; }
   .input-wrap input { padding-right: 38px; }
   .input-wrap .sfx { font-size: 17px; right: 12px; }
 
@@ -620,13 +629,13 @@ input[readonly] {
 <body>
 
 <!-- ─── TOP BAR ─── -->
-<div class="topbar">
+<!-- <div class="topbar">
   <div class="topbar-brand">
     <span class="name">Shutter half<span>.</span></span>
     <span class="tag">Receipt Generator</span>
   </div>
   <span class="topbar-right">Studio · Rajkot</span>
-</div>
+</div> -->
 
 <!-- ─── LAYOUT ─── -->
 <div class="layout">
@@ -643,7 +652,7 @@ input[readonly] {
       <div class="fgroup">
         <div class="field">
           <label>Client Full Name</label>
-          <input id="f-clientName" type="text" value="SIDDHARTH NAIR" placeholder="e.g. RAHUL SHARMA" oninput="liveUpdate()">
+          <input id="f-clientName" type="text" value="" oninput="liveUpdate()">
         </div>
       </div>
     </div>
@@ -654,7 +663,7 @@ input[readonly] {
       <div class="fgroup">
         <div class="field">
           <label>Event Date(s)</label>
-          <input id="f-eventDates" type="text" value="21,22,23 FEB 2026" placeholder="e.g. 15 MAR 2026" oninput="liveUpdate()">
+          <input id="f-eventDates" type="text" value="" oninput="liveUpdate()">
         </div>
       </div>
     </div>
@@ -667,7 +676,7 @@ input[readonly] {
         <div class="field">
           <label>Total Package Cost (₹)</label>
           <div class="input-wrap">
-            <input id="f-totalPkg" type="text" value="" placeholder="e.g. 1,00,000" oninput="formatAmtInput(this); autoCalc()">
+            <input id="f-totalPkg" type="text" value="" oninput="formatAmtInput(this); autoCalc()">
             <span class="sfx">/-</span>
           </div>
         </div>
@@ -675,7 +684,7 @@ input[readonly] {
         <div class="field">
           <label>Advance Received (₹)</label>
           <div class="input-wrap">
-            <input id="f-advance" type="text" value="" placeholder="e.g. 50,000" oninput="formatAmtInput(this); autoCalc()">
+            <input id="f-advance" type="text" value="" oninput="formatAmtInput(this); autoCalc()">
             <span class="sfx">/-</span>
           </div>
         </div>
@@ -691,7 +700,7 @@ input[readonly] {
         <div class="field">
           <label>Remaining Received (₹)</label>
           <div class="input-wrap">
-            <input id="f-remRcvd" type="text" value="" placeholder="e.g. 50,000" oninput="formatAmtInput(this); autoCalcTotal()">
+            <input id="f-remRcvd" type="text" value="" oninput="formatAmtInput(this); autoCalcTotal()">
             <span class="sfx">/-</span>
           </div>
         </div>
@@ -725,9 +734,7 @@ input[readonly] {
         </div>
         <div class="field">
           <label>Studio Address</label>
-          <input id="f-address" type="text"
-            value="403, Keval gold, Behind nyara petrol pump, Near bapasitaram chowk, Raiya road, Rajkot-360007"
-            oninput="liveUpdate()">
+          <textarea id="f-address" rows="2" oninput="liveUpdate()">403, Keval gold, Behind nyara petrol pump, Near bapasitaram chowk, Raiya road, Rajkot-360007</textarea>
         </div>
       </div>
     </div>
@@ -766,7 +773,10 @@ input[readonly] {
           <div class="r-dots"></div>
 
           <!-- Watermark -->
-          <div class="r-watermark">Shutter<br>half.</div>
+          <div class="r-watermark">
+            <span class="r-watermark-shutter">Shutter</span>
+            <span class="r-watermark-half">half<span class="r-watermark-dot">.</span></span>
+          </div>
 
           <!-- HEADER -->
           <div class="r-header">
@@ -1015,8 +1025,6 @@ async function downloadPDF() {
   clone.style.minHeight       = '1123px';
   clone.style.position        = 'relative';
   clone.style.fontFamily      = '"Montserrat", sans-serif';
-  const footerName = clone.querySelector('.r-footer-name');
-  if (footerName) footerName.style.fontFamily = '"Playfair Display", serif';
   stage.appendChild(clone);
 
   // Give browser 2 frames to lay out the clone
