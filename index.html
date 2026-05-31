@@ -480,8 +480,10 @@ textarea {
   }
   .preview-panel {
     padding: 20px 16px 28px;
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: visible;
   }
+  input, textarea { font-size: 16px; }
 }
 
 /* ── 768px: Tablet ── */
@@ -546,7 +548,7 @@ textarea {
   }
   input, textarea {
     min-height: 64px;
-    font-size: 24px;
+    font-size: 20px;
     padding: 18px 20px;
   }
   .preview-panel { padding: 14px 10px 20px; }
@@ -556,7 +558,7 @@ textarea {
   .fsection-title { font-size: 18px; letter-spacing: 1.5px; margin-bottom: 16px; }
   .fgroup { gap: 18px; }
   .field { gap: 12px; }
-  label { font-size: 17px; letter-spacing: 1px; }
+  label { font-size: 12px; letter-spacing: 1px; }
   .input-wrap input { padding-right: 44px; }
   .input-wrap .sfx { font-size: 18px; right: 16px; }
 
@@ -848,6 +850,14 @@ textarea {
               </div>
               <div class="r-fin-div dark"></div>
 
+              <!-- Payment Pending (disabled for now)
+              <div id="r-pending-row" class="r-fin-row" style="display:none">
+                <div class="r-fin-label" style="color:#b8860b;font-weight:700;">Payment Pending:-</div>
+                <div class="r-fin-value" id="r-pending" style="color:#b8860b;font-weight:700;">0/-</div>
+              </div>
+              <div id="r-pending-div" class="r-fin-div" style="display:none;"></div>
+              -->
+
             </div>
           </div><!-- /r-content -->
 
@@ -961,6 +971,26 @@ function liveUpdate() {
   // Address (split on comma for line breaks)
   const addrEl = document.getElementById('r-address');
   if (addrEl) addrEl.textContent = document.getElementById('f-address').value || '—';
+
+  /* Payment Pending (disabled for now)
+  const remRP = parseAmt(document.getElementById('f-remRcvd').value);
+  const pkgP  = parseAmt(document.getElementById('f-totalPkg').value);
+  const totP  = parseAmt(document.getElementById('f-totalRcvd').value);
+  const pendingAmt = Math.max(0, pkgP - totP);
+  const pendingRow = document.getElementById('r-pending-row');
+  const pendingDiv = document.getElementById('r-pending-div');
+  const pendingEl  = document.getElementById('r-pending');
+  if (pendingRow && pendingDiv && pendingEl) {
+    if (remRP === 0) {
+      pendingRow.style.display = 'flex';
+      pendingDiv.style.display = 'block';
+      pendingEl.textContent = fmtAmt(pendingAmt) + '/-';
+    } else {
+      pendingRow.style.display = 'none';
+      pendingDiv.style.display = 'none';
+    }
+  }
+  */
 }
 
 // ─── Scale preview to fit panel ────────────────
